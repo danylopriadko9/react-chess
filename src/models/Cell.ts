@@ -134,7 +134,14 @@ export class Cell {
 
   pawnMove(target: Cell) {
     // двигаться на соседние столбики нельзя
+    const direction = this.figure?.color === Colors.WHITE ? -1 : 1;
+
     if (target.x === this.x && target.figure) return false;
+    if (
+      target.x === this.x &&
+      this.board.getCell(this.x, this.y + direction)?.figure
+    )
+      return false;
 
     if (this.figure?.color === Colors.WHITE) {
       // двигаться назад нельзя
@@ -245,9 +252,46 @@ export class Cell {
     return true;
   }
 
-  setFigure(figure: Figure) {
-    this.figure = figure;
-    this.figure.cell = this;
+  isCastlingPossible(target: Cell, king: Figure) {
+    if (king.firstMove !== null) return false;
+    if (king.cell.y !== target.y) return false;
+    // добавить проверку на шах
+
+    const leftRock = this.board.getCell(0, king.cell.y).figure;
+    const rightRock = this.board.getCell(7, king.cell.y).figure;
+
+    let right = true;
+    let left = true;
+
+    if (leftRock?.firstMove === null) {
+      for (let x = 1; x < 4; x++) {
+        if (!this.board.getCell(x, king.cell.y).isEmpty()) {
+          left = false;
+          break;
+        }
+      }
+    }
+
+    if (rightRock?.firstMove === null) {
+      for (let x = 6; x > 4; x--) {
+        if (!this.board.getCell(x, king.cell.y).isEmpty()) {
+          right = false;
+          break;
+        }
+      }
+    }
+
+    if (left && target.x === 2) return true;
+    if (right && target.x === 6) return true;
+
+    return false;
+  }
+
+  setFigure(figure: Figure | null) {
+    if (figure) {
+      this.figure = figure;
+      this.figure.cell = this;
+    }
   }
 
   deleteFigureFromCell(x: number, y: number) {
@@ -257,7 +301,6 @@ export class Cell {
   moveFigure(target: Cell) {
     if (this.figure && this.figure?.canMove(target)) {
       //ВЗЯТИЕ НА ПРОХОДЕ
-      // проверяем ходит ли это пешка
       if (this.figure.name === figuresNames.PAWN) {
         // если иксы не совпадают и пешка ходит на пустое поле - значит это взятие на проходе
         if (this.x !== target.x && !target.figure) {
@@ -265,6 +308,32 @@ export class Cell {
           if (this.figure.color === Colors.WHITE)
             this.deleteFigureFromCell(target.x, target.y + 1);
           else this.deleteFigureFromCell(target.x, target.y - 1);
+        }
+      }
+
+      // РОКИРОВКА
+      if (this.figure.name === figuresNames.KING) {
+        const absX = Math.abs(target.x - 4);
+
+        if (absX >= 2 && this.figure.firstMove === null) {
+          const color = this.figure.color;
+
+          if (target.x > this.x) {
+            // right castling
+
+            this.board
+              .getCell(5, this.y)
+              .setFigure(this.board.getCell(7, this.y).figure);
+            this.board.getCell(7, this.y).figure = null;
+          }
+
+          if (target.x < this.x) {
+            // left castling
+            this.board
+              .getCell(3, this.y)
+              .setFigure(this.board.getCell(0, this.y).figure);
+            this.board.getCell(0, this.y).figure = null;
+          }
         }
       }
 

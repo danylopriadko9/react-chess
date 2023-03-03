@@ -12,6 +12,13 @@ export class King extends Figure {
   }
 
   canMove(target: Cell): boolean {
+    const castlingPlaces = [2, 6];
+    if (
+      castlingPlaces.find((el) => el === target.x) &&
+      this.cell.isCastlingPossible(target, this)
+    )
+      return true;
+
     if (!super.canMove(target)) return false;
     if (this.cell.kingMove(target)) return false;
 
