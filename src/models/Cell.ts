@@ -213,8 +213,9 @@ export class Cell {
 
   cellsUnderAtack(figures: Figure[], target: Cell): boolean {
     for (const figure of figures) {
-      if (figure.name !== figuresNames.PAWN && figure.canMove(target))
+      if (figure.name !== figuresNames.PAWN && figure.canMove(target)) {
         return true;
+      }
 
       if (
         figure.name === figuresNames.PAWN &&
@@ -298,6 +299,40 @@ export class Cell {
     this.board.getCell(x, y).figure = null;
   }
 
+  isCheckNow(figure: Figure): boolean {
+    let kingCell;
+    const enemies: Figure[] = [];
+    const color: Colors = figure.color;
+
+    // king cell detection
+    for (let i = 0; i < this.board.cells.length; i++) {
+      const row = this.board.cells[i];
+      for (let j = 0; j < row.length; j++) {
+        if (
+          this.board.getCell(j, i).figure?.name === figuresNames.KING &&
+          this.board.getCell(j, i).figure?.color !== color
+        ) {
+          kingCell = this.board.getCell(j, i);
+        }
+
+        if (
+          this.board.getCell(j, i).figure &&
+          this.board.getCell(j, i).figure?.color === color
+        ) {
+          enemies.push(this.board.getCell(j, i).figure!);
+        }
+      }
+    }
+
+    for (figure of enemies) {
+      if (kingCell && figure.canMove(kingCell)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   moveFigure(target: Cell) {
     if (this.figure && this.figure?.canMove(target)) {
       //ВЗЯТИЕ НА ПРОХОДЕ
@@ -338,10 +373,14 @@ export class Cell {
       }
 
       if (target.figure) {
-        console.log(target.figure);
         //this.addLostFigure(target.figure);
       }
       target.setFigure(this.figure);
+
+      if (this.isCheckNow(this.figure)) {
+        console.log('Check');
+      }
+
       this.deleteFigureFromCell(this.x, this.y);
     }
   }
